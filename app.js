@@ -1,107 +1,56 @@
 /* =========================================================
    AIR GUITAR OPERA
+   FINAL LEFT / RIGHT ALIGNMENT + PERFORMANCE VERSION
 
-   Fixes included:
-   - No mirrored camera
-   - Correct real left and right hands
-   - Lower latency
-   - MediaPipe frame throttling
-   - No simultaneous MediaPipe processing
-   - Smooth but responsive movement
-   - Camera remains visible
-   - Original design preserved
-   - Acoustic-guitar engine preserved
-   ========================================================= */
-
-
-/* =========================================================
-   HTML ELEMENTS
+   Important behavior:
+   - Camera image and MediaPipe coordinates are calibrated.
+   - Screen-left hand always controls the cyan chord field.
+   - Screen-right hand always controls the pink guitar field.
+   - MediaPipe Left/Right labels are intentionally ignored.
+   - Design and acoustic-guitar engine remain unchanged.
 ========================================================= */
 
 const el = (id) =>
   document.getElementById(id);
 
-const welcome =
-  el("welcome");
+const welcome = el("welcome");
+const stage = el("stage");
 
-const stage =
-  el("stage");
+const startBtn = el("startBtn");
+const startMsg = el("startMsg");
 
-const startBtn =
-  el("startBtn");
+const video = el("video");
+const fxCanvas = el("fx");
+const handsCanvas = el("handsCanvas");
 
-const startMsg =
-  el("startMsg");
+const fx = fxCanvas.getContext("2d");
+const hc = handsCanvas.getContext("2d");
 
-const video =
-  el("video");
+const leftField = el("leftField");
+const rightField = el("rightField");
 
-const fxCanvas =
-  el("fx");
+const chordName = el("chordName");
+const chordLong = el("chordLong");
+const playedNote = el("playedNote");
 
-const handsCanvas =
-  el("handsCanvas");
+const leftEnergy = el("leftEnergy");
+const rightEnergy = el("rightEnergy");
 
-const fx =
-  fxCanvas.getContext("2d");
+const cameraState = el("cameraState");
+const handState = el("handState");
 
-const hc =
-  handsCanvas.getContext("2d");
+const message = el("message");
+const subMessage = el("subMessage");
+const progressBar = el("progressBar");
 
-const leftField =
-  el("leftField");
+const manualBtn = el("manualBtn");
+const concertBtn = el("concertBtn");
+const pauseBtn = el("pauseBtn");
 
-const rightField =
-  el("rightField");
+const volume = el("volume");
+const volumeText = el("volumeText");
 
-const chordName =
-  el("chordName");
-
-const chordLong =
-  el("chordLong");
-
-const playedNote =
-  el("playedNote");
-
-const leftEnergy =
-  el("leftEnergy");
-
-const rightEnergy =
-  el("rightEnergy");
-
-const cameraState =
-  el("cameraState");
-
-const handState =
-  el("handState");
-
-const message =
-  el("message");
-
-const subMessage =
-  el("subMessage");
-
-const progressBar =
-  el("progressBar");
-
-const manualBtn =
-  el("manualBtn");
-
-const concertBtn =
-  el("concertBtn");
-
-const pauseBtn =
-  el("pauseBtn");
-
-const volume =
-  el("volume");
-
-const volumeText =
-  el("volumeText");
-
-const errorBox =
-  el("error");
-
+const errorBox = el("error");
 
 /* =========================================================
    STATE
@@ -143,39 +92,43 @@ let lastMediaPipeFrame = 0;
 
 let animationStarted = false;
 
-let smoothLeftPoint = null;
-let smoothRightPoint = null;
-
+let smoothScreenLeftPoint = null;
+let smoothScreenRightPoint = null;
 
 /*
-  Higher value:
-  more responsive, less smoothing.
+  The correct orientation is detected automatically
+  from the video element after the camera starts.
 
-  0.78 gives light smoothing
-  without adding a large delay.
+  true means MediaPipe X must be inverted to match
+  the visible camera image.
 */
 
-const HAND_SMOOTHING = 0.78;
+let invertMediaPipeX = false;
 
+/*
+  0.82 keeps the hand responsive.
+  Smaller values create more smoothing but more delay.
+*/
+
+const HAND_SMOOTHING = 0.82;
 
 /* =========================================================
-   DETECTION ZONES
+   INTERACTION ZONES
 ========================================================= */
 
-const LEFT = {
+const LEFT_ZONE = {
   x1: 0.05,
   x2: 0.25,
   y1: 0.32,
   y2: 0.80
 };
 
-const RIGHT = {
+const RIGHT_ZONE = {
   x1: 0.42,
   x2: 0.96,
   y1: 0.17,
   y2: 0.90
 };
-
 
 /* =========================================================
    MUSIC
@@ -183,24 +136,24 @@ const RIGHT = {
 
 const CHORDS = [
   {
-    n: "C MAJOR",
-    s: "C",
-    m: [48, 52, 55, 60, 64]
+    name: "C MAJOR",
+    shortName: "C",
+    notes: [48, 52, 55, 60, 64]
   },
   {
-    n: "A MINOR",
-    s: "Am",
-    m: [45, 48, 52, 57, 60]
+    name: "A MINOR",
+    shortName: "Am",
+    notes: [45, 48, 52, 57, 60]
   },
   {
-    n: "F MAJOR",
-    s: "F",
-    m: [41, 45, 48, 53, 57]
+    name: "F MAJOR",
+    shortName: "F",
+    notes: [41, 45, 48, 53, 57]
   },
   {
-    n: "G MAJOR",
-    s: "G",
-    m: [43, 47, 50, 55, 59]
+    name: "G MAJOR",
+    shortName: "G",
+    notes: [43, 47, 50, 55, 59]
   }
 ];
 
@@ -227,9 +180,8 @@ const PROGRESSION = [
   2
 ];
 
-
 /* =========================================================
-   GUITAR INITIALIZATION
+   GUITAR ENGINE
 ========================================================= */
 
 function initInstrument() {
@@ -279,7 +231,6 @@ function initInstrument() {
 
   player.loader.decodeAfterLoading(
     audioCtx,
-
     "_tone_0250_LK_AcousticSteel_SF2_file"
   );
 
@@ -288,12 +239,7 @@ function initInstrument() {
   return true;
 }
 
-
-/* =========================================================
-   PLAY NOTE
-========================================================= */
-
-function note(
+function playNote(
   midi,
   velocity = 0.7,
   delay = 0,
@@ -306,28 +252,15 @@ function note(
   player.queueWaveTable(
     audioCtx,
     output,
-
     _tone_0250_LK_AcousticSteel_SF2_file,
-
-    audioCtx.currentTime +
-      delay,
-
+    audioCtx.currentTime + delay,
     midi,
     duration,
-
-    Math.min(
-      0.95,
-      velocity
-    )
+    Math.min(0.95, velocity)
   );
 }
 
-
-/* =========================================================
-   PLAY CHORD
-========================================================= */
-
-function strum(
+function playChord(
   chordIndex = selectedChord,
   velocity = 0.75,
   upward = false
@@ -337,26 +270,23 @@ function strum(
 
   const notes =
     upward
-      ? [...chord.m].reverse()
-      : chord.m;
+      ? [...chord.notes].reverse()
+      : chord.notes;
 
   notes.forEach(
     (midi, index) => {
-      const delay =
+      const stringDelay =
         index *
         (
           0.026 +
-          (
-            1 -
-            velocity
-          ) *
+          (1 - velocity) *
           0.018
         );
 
-      note(
+      playNote(
         midi,
         velocity,
-        delay,
+        stringDelay,
         2
       );
     }
@@ -366,20 +296,18 @@ function strum(
     chordIndex;
 
   chordName.textContent =
-    chord.s;
+    chord.shortName;
 
   chordLong.textContent =
-    chord.n;
+    chord.name;
 
-  burst(
-    innerWidth * 0.72,
-    innerHeight * 0.48,
-
+  createParticles(
+    window.innerWidth * 0.72,
+    window.innerHeight * 0.48,
     "#ffd36b",
-    18
+    15
   );
 }
-
 
 function stopSound() {
   if (player && audioCtx) {
@@ -389,12 +317,11 @@ function stopSound() {
   }
 }
 
-
 /* =========================================================
    CONCERT MODE
 ========================================================= */
 
-function playConcertBeat() {
+function playConcertStep() {
   if (
     mode !== "concert" ||
     concertPaused
@@ -408,20 +335,18 @@ function playConcertBeat() {
       PROGRESSION.length
     ];
 
-  strum(
+  playChord(
     chordIndex,
     0.72,
-
     concertStep % 2 === 1
   );
 
   window.setTimeout(() => {
-    note(
+    playNote(
       MELODY[
         (concertStep * 2) %
         MELODY.length
       ],
-
       0.42,
       0,
       1.35
@@ -429,7 +354,7 @@ function playConcertBeat() {
   }, 270);
 
   window.setTimeout(() => {
-    note(
+    playNote(
       MELODY[
         (
           concertStep * 2 +
@@ -437,7 +362,6 @@ function playConcertBeat() {
         ) %
         MELODY.length
       ],
-
       0.36,
       0,
       1.1
@@ -460,9 +384,8 @@ function playConcertBeat() {
     "Guitar Concert is playing";
 
   subMessage.textContent =
-    "Your right hand can improvise above the acoustic guitar arrangement";
+    "Your right-side hand can improvise above the acoustic guitar arrangement";
 }
-
 
 function startConcert() {
   mode = "concert";
@@ -484,17 +407,16 @@ function startConcert() {
     concertTimer
   );
 
-  playConcertBeat();
+  playConcertStep();
 
   concertTimer =
     window.setInterval(
-      playConcertBeat,
+      playConcertStep,
       900
     );
 }
 
-
-function setManual() {
+function setManualMode() {
   mode = "manual";
 
   manualBtn.classList.add(
@@ -524,11 +446,10 @@ function setManual() {
     "Manual Live mode";
 
   subMessage.textContent =
-    "Left hand selects the chord. Right hand performs the acoustic guitar.";
+    "Screen-left hand selects the chord. Screen-right hand performs the guitar.";
 }
 
-
-function togglePause() {
+function toggleConcertPause() {
   if (mode !== "concert") {
     return;
   }
@@ -550,28 +471,22 @@ function togglePause() {
 
     stopSound();
   } else {
-    playConcertBeat();
+    playConcertStep();
 
     concertTimer =
       window.setInterval(
-        playConcertBeat,
+        playConcertStep,
         900
       );
   }
 }
 
-
 /* =========================================================
-   CANVAS RESOLUTION
+   CANVAS
 ========================================================= */
 
-function resize() {
-  /*
-    1.25 provides better performance
-    while remaining sharp on a projector.
-  */
-
-  const pixelRatio =
+function resizeCanvases() {
+  const ratio =
     Math.min(
       window.devicePixelRatio || 1,
       1.25
@@ -583,41 +498,40 @@ function resize() {
   ].forEach((canvas) => {
     canvas.width =
       Math.round(
-        innerWidth *
-        pixelRatio
+        window.innerWidth *
+        ratio
       );
 
     canvas.height =
       Math.round(
-        innerHeight *
-        pixelRatio
+        window.innerHeight *
+        ratio
       );
 
     canvas.style.width =
-      `${innerWidth}px`;
+      `${window.innerWidth}px`;
 
     canvas.style.height =
-      `${innerHeight}px`;
+      `${window.innerHeight}px`;
 
     canvas
       .getContext("2d")
       .setTransform(
-        pixelRatio,
+        ratio,
         0,
         0,
-        pixelRatio,
+        ratio,
         0,
         0
       );
   });
 }
 
-
 /* =========================================================
    PARTICLES
 ========================================================= */
 
-function burst(
+function createParticles(
   x,
   y,
   color,
@@ -634,48 +548,36 @@ function burst(
 
       velocityX:
         (Math.random() - 0.5) *
-        4.2,
+        4,
 
       velocityY:
         (Math.random() - 0.5) *
-        4.2,
+        4,
 
       life: 1,
 
       size:
         Math.random() *
-        3.2 + 1,
+        3 + 1,
 
       color
     });
   }
 
-  /*
-    Lower particle limit reduces lag.
-  */
-
-  if (particles.length > 200) {
+  if (particles.length > 180) {
     particles.splice(
       0,
-      particles.length - 200
+      particles.length - 180
     );
   }
 }
 
-
-function animate() {
-  /*
-    Clear the canvas fully.
-
-    Do not use a black fill.
-    A black fill hides the camera.
-  */
-
+function animateParticles() {
   fx.clearRect(
     0,
     0,
-    innerWidth,
-    innerHeight
+    window.innerWidth,
+    window.innerHeight
   );
 
   for (const particle of particles) {
@@ -692,7 +594,7 @@ function animate() {
       0.98;
 
     particle.life -=
-      0.026;
+      0.028;
 
     fx.globalAlpha =
       Math.max(
@@ -708,9 +610,7 @@ function animate() {
     fx.arc(
       particle.x,
       particle.y,
-
       particle.size,
-
       0,
       Math.PI * 2
     );
@@ -727,43 +627,68 @@ function animate() {
     );
 
   window.requestAnimationFrame(
-    animate
+    animateParticles
   );
 }
 
+/* =========================================================
+   CAMERA ORIENTATION CALIBRATION
+========================================================= */
+
+function detectVideoMirrorState() {
+  const computedStyle =
+    window.getComputedStyle(
+      video
+    );
+
+  const transform =
+    computedStyle.transform;
+
+  /*
+    A CSS matrix beginning with -1 means
+    scaleX(-1) is active.
+  */
+
+  invertMediaPipeX =
+    transform === "matrix(-1, 0, 0, 1, 0, 0)" ||
+    transform.includes("-1, 0, 0, 1");
+
+  console.log(
+    "MediaPipe horizontal correction:",
+    invertMediaPipeX
+      ? "INVERTED"
+      : "NORMAL"
+  );
+}
 
 /* =========================================================
    COORDINATES
-
-   No mirror conversion is used.
-
-   Real right hand:
-   right side of the image.
-
-   Real left hand:
-   left side of the image.
 ========================================================= */
 
-function pointFromLandmark(
+function convertLandmark(
   landmark
 ) {
+  const correctedX =
+    invertMediaPipeX
+      ? 1 - landmark.x
+      : landmark.x;
+
   return {
     x:
-      landmark.x,
+      correctedX,
 
     y:
       landmark.y,
 
     screenX:
-      landmark.x *
-      innerWidth,
+      correctedX *
+      window.innerWidth,
 
     screenY:
       landmark.y *
-      innerHeight
+      window.innerHeight
   };
 }
-
 
 function pointInsideZone(
   point,
@@ -780,9 +705,8 @@ function pointInsideZone(
   );
 }
 
-
 /* =========================================================
-   LIGHTWEIGHT SMOOTHING
+   SMOOTHING
 ========================================================= */
 
 function smoothPoint(
@@ -802,46 +726,29 @@ function smoothPoint(
   return {
     x:
       previousPoint.x *
-      (
-        1 -
-        HAND_SMOOTHING
-      ) +
-
+      (1 - HAND_SMOOTHING) +
       newPoint.x *
       HAND_SMOOTHING,
 
     y:
       previousPoint.y *
-      (
-        1 -
-        HAND_SMOOTHING
-      ) +
-
+      (1 - HAND_SMOOTHING) +
       newPoint.y *
       HAND_SMOOTHING,
 
     screenX:
       previousPoint.screenX *
-      (
-        1 -
-        HAND_SMOOTHING
-      ) +
-
+      (1 - HAND_SMOOTHING) +
       newPoint.screenX *
       HAND_SMOOTHING,
 
     screenY:
       previousPoint.screenY *
-      (
-        1 -
-        HAND_SMOOTHING
-      ) +
-
+      (1 - HAND_SMOOTHING) +
       newPoint.screenY *
       HAND_SMOOTHING
   };
 }
-
 
 /* =========================================================
    DRAW HAND
@@ -891,11 +798,6 @@ function drawHand(
   hc.lineWidth =
     1.8;
 
-  /*
-    Keep a small glow.
-    Large shadows create GPU lag.
-  */
-
   hc.shadowBlur =
     4;
 
@@ -909,12 +811,12 @@ function drawHand(
     ] of connections
   ) {
     const start =
-      pointFromLandmark(
+      convertLandmark(
         landmarks[startIndex]
       );
 
     const end =
-      pointFromLandmark(
+      convertLandmark(
         landmarks[endIndex]
       );
 
@@ -933,9 +835,11 @@ function drawHand(
     hc.stroke();
   }
 
-  for (const landmark of landmarks) {
+  for (
+    const landmark of landmarks
+  ) {
     const point =
-      pointFromLandmark(
+      convertLandmark(
         landmark
       );
 
@@ -955,59 +859,60 @@ function drawHand(
   hc.restore();
 }
 
-
 /* =========================================================
-   HAND INTERACTION
+   INTERACTION
+
+   Critical rule:
+   Hands are assigned by visible screen position.
+
+   Left side of screen:
+   chord control.
+
+   Right side of screen:
+   guitar performance.
+
+   MediaPipe's Left/Right labels are not used.
 ========================================================= */
 
 function updateInteraction(
-  leftPoint,
-  rightPoint
+  screenLeftPoint,
+  screenRightPoint
 ) {
-  const leftControlPoint =
+  const chordPoint =
     pointInsideZone(
-      leftPoint,
-      LEFT
+      screenLeftPoint,
+      LEFT_ZONE
     )
-      ? leftPoint
+      ? screenLeftPoint
 
       : pointInsideZone(
-          rightPoint,
-          LEFT
+          screenRightPoint,
+          LEFT_ZONE
         )
-        ? rightPoint
+        ? screenRightPoint
         : null;
 
-
-  const rightPerformancePoint =
+  const guitarPoint =
     pointInsideZone(
-      rightPoint,
-      RIGHT
+      screenRightPoint,
+      RIGHT_ZONE
     )
-      ? rightPoint
+      ? screenRightPoint
 
       : pointInsideZone(
-          leftPoint,
-          RIGHT
+          screenLeftPoint,
+          RIGHT_ZONE
         )
-        ? leftPoint
+        ? screenLeftPoint
         : null;
-
 
   leftIn =
-    Boolean(
-      leftControlPoint
-    );
+    Boolean(chordPoint);
 
   rightIn =
-    Boolean(
-      rightPerformancePoint
-    );
+    Boolean(guitarPoint);
 
-
-  /* CHORD HAND */
-
-  if (leftControlPoint) {
+  if (chordPoint) {
     const relativeY =
       Math.max(
         0,
@@ -1016,12 +921,12 @@ function updateInteraction(
           0.999,
 
           (
-            leftControlPoint.y -
-            LEFT.y1
+            chordPoint.y -
+            LEFT_ZONE.y1
           ) /
           (
-            LEFT.y2 -
-            LEFT.y1
+            LEFT_ZONE.y2 -
+            LEFT_ZONE.y1
           )
         )
       );
@@ -1039,26 +944,30 @@ function updateInteraction(
         chordIndex;
 
       chordName.textContent =
-        CHORDS[chordIndex].s;
-
-      chordLong.textContent =
-        CHORDS[chordIndex].n;
-
-      note(
         CHORDS[
           chordIndex
-        ].m[0],
+        ].shortName;
+
+      chordLong.textContent =
+        CHORDS[
+          chordIndex
+        ].name;
+
+      playNote(
+        CHORDS[
+          chordIndex
+        ].notes[0],
 
         0.34,
         0,
         1.2
       );
 
-      burst(
-        leftControlPoint.screenX,
-        leftControlPoint.screenY,
+      createParticles(
+        chordPoint.screenX,
+        chordPoint.screenY,
         "#59ecff",
-        7
+        6
       );
     }
 
@@ -1068,15 +977,6 @@ function updateInteraction(
         leftPower + 9
       );
 
-    if (Math.random() < 0.25) {
-      burst(
-        leftControlPoint.screenX,
-        leftControlPoint.screenY,
-        "#59ecff",
-        1
-      );
-    }
-
   } else {
     leftPower =
       Math.max(
@@ -1085,20 +985,17 @@ function updateInteraction(
       );
   }
 
-
-  /* GUITAR HAND */
-
-  if (rightPerformancePoint) {
+  if (guitarPoint) {
     if (lastRight) {
       const now =
         performance.now();
 
       const deltaX =
-        rightPerformancePoint.x -
+        guitarPoint.x -
         lastRight.x;
 
       const deltaY =
-        rightPerformancePoint.y -
+        guitarPoint.y -
         lastRight.y;
 
       const elapsed =
@@ -1116,19 +1013,18 @@ function updateInteraction(
         elapsed *
         1000;
 
-
       if (
         speed > 0.31 &&
         now - lastPlay > 135
       ) {
-        strum(
+        playChord(
           selectedChord,
 
           Math.min(
             0.92,
 
             Math.max(
-              0.40,
+              0.4,
               speed * 0.72
             )
           ),
@@ -1158,14 +1054,14 @@ function updateInteraction(
               Math.floor(
                 (
                   1 -
-                  rightPerformancePoint.y
+                  guitarPoint.y
                 ) *
                 MELODY.length
               )
             )
           );
 
-        note(
+        playNote(
           MELODY[
             melodyIndex
           ],
@@ -1174,7 +1070,7 @@ function updateInteraction(
             0.62,
 
             Math.max(
-              0.30,
+              0.3,
               speed + 0.25
             )
           ),
@@ -1190,47 +1086,42 @@ function updateInteraction(
           now;
       }
 
-
       rightPower =
         Math.min(
           100,
           speed * 118
         );
 
-
-      if (Math.random() < 0.30) {
-        burst(
-          rightPerformancePoint.screenX,
-          rightPerformancePoint.screenY,
-
+      if (
+        Math.random() <
+        0.25
+      ) {
+        createParticles(
+          guitarPoint.screenX,
+          guitarPoint.screenY,
           "#f15ee8",
-
-          Math.max(
-            1,
-
-            Math.floor(
-              speed * 4
-            )
-          )
+          2
         );
       }
     }
 
-
     lastRight = {
       x:
-        rightPerformancePoint.x,
+        guitarPoint.x,
 
       y:
-        rightPerformancePoint.y
+        guitarPoint.y
     };
 
     lastRightTime =
       performance.now();
 
   } else {
-    lastRight = null;
-    lastRightTime = 0;
+    lastRight =
+      null;
+
+    lastRightTime =
+      0;
 
     rightPower =
       Math.max(
@@ -1243,7 +1134,6 @@ function updateInteraction(
         ? "Add live notes"
         : "Move to play";
   }
-
 
   leftField.classList.toggle(
     "active",
@@ -1261,19 +1151,18 @@ function updateInteraction(
   rightEnergy.style.width =
     `${rightPower}%`;
 
-
   if (mode === "manual") {
     if (leftIn && rightIn) {
       message.textContent =
-        "Harmony selected. Perform with the right hand.";
+        "Harmony selected. Perform with the screen-right hand.";
 
       subMessage.textContent =
-        "Fast movement strums. Gentle movement plays individual guitar notes.";
+        "Fast movement strums. Gentle movement plays individual notes.";
     }
 
     else if (leftIn) {
       message.textContent =
-        "Choose a chord with the left hand";
+        "Choose a chord in the cyan field";
 
       subMessage.textContent =
         "Move vertically through C, Am, F and G";
@@ -1281,7 +1170,7 @@ function updateInteraction(
 
     else if (rightIn) {
       message.textContent =
-        "Right hand is performing";
+        "The pink guitar field is active";
 
       subMessage.textContent =
         "Move faster for a stronger acoustic strum";
@@ -1289,35 +1178,31 @@ function updateInteraction(
 
     else {
       message.textContent =
-        "Place your left hand inside the chord field";
+        "Place one hand in the cyan chord field";
 
       subMessage.textContent =
-        "Then move your right hand inside the guitar field";
+        "Then place another hand in the pink guitar field";
     }
   }
 }
-
 
 /* =========================================================
    MEDIAPIPE RESULTS
 ========================================================= */
 
-function onResults(results) {
+function handleResults(
+  results
+) {
   hc.clearRect(
     0,
     0,
-    innerWidth,
-    innerHeight
+    window.innerWidth,
+    window.innerHeight
   );
 
   const detectedHands =
     results.multiHandLandmarks ||
     [];
-
-  const classifications =
-    results.multiHandedness ||
-    [];
-
 
   if (
     detectedHands.length === 0
@@ -1349,13 +1234,15 @@ function onResults(results) {
 
       lastRight = null;
 
-      smoothLeftPoint = null;
-      smoothRightPoint = null;
+      smoothScreenLeftPoint =
+        null;
+
+      smoothScreenRightPoint =
+        null;
     }
 
     return;
   }
-
 
   lastHandSeen =
     performance.now();
@@ -1367,89 +1254,130 @@ function onResults(results) {
         : ""
     }`;
 
+  /*
+    Convert every hand into a palm point.
+  */
 
-  let rawLeftPoint = null;
-  let rawRightPoint = null;
+  const handsWithPoints =
+    detectedHands.map(
+      (landmarks) => {
+        const palmPoint =
+          convertLandmark(
+            landmarks[9]
+          );
 
-
-  detectedHands.forEach(
-    (
-      landmarks,
-      index
-    ) => {
-      const classification =
-        classifications[index];
-
-      /*
-        selfieMode is disabled.
-
-        Therefore MediaPipe now reports
-        the real physical hand.
-      */
-
-      const label =
-        classification?.label ||
-        (
-          index === 0
-            ? "Left"
-            : "Right"
-        );
-
-
-      const color =
-        label === "Left"
-          ? "#59ecff"
-          : "#f15ee8";
-
-
-      drawHand(
-        landmarks,
-        color
-      );
-
-
-      const palmPoint =
-        pointFromLandmark(
-          landmarks[9]
-        );
-
-
-      if (label === "Left") {
-        rawLeftPoint =
-          palmPoint;
-      } else {
-        rawRightPoint =
-          palmPoint;
+        return {
+          landmarks,
+          palmPoint
+        };
       }
-    }
+    );
+
+  /*
+    Sort from visible screen-left
+    to visible screen-right.
+
+    This is the important correction.
+  */
+
+  handsWithPoints.sort(
+    (
+      firstHand,
+      secondHand
+    ) =>
+      firstHand.palmPoint.x -
+      secondHand.palmPoint.x
   );
 
+  let rawScreenLeftPoint =
+    null;
 
-  smoothLeftPoint =
-    smoothPoint(
-      smoothLeftPoint,
-      rawLeftPoint
+  let rawScreenRightPoint =
+    null;
+
+  if (
+    handsWithPoints.length === 1
+  ) {
+    const onlyHand =
+      handsWithPoints[0];
+
+    /*
+      Color and assignment are based
+      only on the visible position.
+    */
+
+    if (
+      onlyHand.palmPoint.x <
+      0.5
+    ) {
+      rawScreenLeftPoint =
+        onlyHand.palmPoint;
+
+      drawHand(
+        onlyHand.landmarks,
+        "#59ecff"
+      );
+
+    } else {
+      rawScreenRightPoint =
+        onlyHand.palmPoint;
+
+      drawHand(
+        onlyHand.landmarks,
+        "#f15ee8"
+      );
+    }
+  }
+
+  else {
+    const leftHandData =
+      handsWithPoints[0];
+
+    const rightHandData =
+      handsWithPoints[
+        handsWithPoints.length - 1
+      ];
+
+    rawScreenLeftPoint =
+      leftHandData.palmPoint;
+
+    rawScreenRightPoint =
+      rightHandData.palmPoint;
+
+    drawHand(
+      leftHandData.landmarks,
+      "#59ecff"
     );
 
-  smoothRightPoint =
+    drawHand(
+      rightHandData.landmarks,
+      "#f15ee8"
+    );
+  }
+
+  smoothScreenLeftPoint =
     smoothPoint(
-      smoothRightPoint,
-      rawRightPoint
+      smoothScreenLeftPoint,
+      rawScreenLeftPoint
     );
 
+  smoothScreenRightPoint =
+    smoothPoint(
+      smoothScreenRightPoint,
+      rawScreenRightPoint
+    );
 
   updateInteraction(
-    smoothLeftPoint,
-    smoothRightPoint
+    smoothScreenLeftPoint,
+    smoothScreenRightPoint
   );
 }
 
-
 /* =========================================================
-   MEDIAPIPE INITIALIZATION
+   MEDIAPIPE
 ========================================================= */
 
-function initHands() {
+function initializeHands() {
   hands = new Hands({
     locateFile: (fileName) =>
       `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fileName}`
@@ -1457,46 +1385,40 @@ function initHands() {
 
   hands.setOptions({
     maxNumHands: 2,
-
-    /*
-      Complexity 0 provides much lower latency.
-    */
-
     modelComplexity: 0,
 
     minDetectionConfidence:
-      0.50,
+      0.5,
 
     minTrackingConfidence:
       0.47,
 
     /*
-      Critical mirror correction.
+      The visible video is not mirrored.
+      Hand assignment is managed spatially.
     */
 
     selfieMode: false
   });
 
   hands.onResults(
-    onResults
+    handleResults
   );
 }
 
-
 /* =========================================================
-   FRAME PROCESSING
-
-   One MediaPipe call at a time.
-   Approximately 25 analyses per second.
+   CAMERA FRAME PROCESSING
 ========================================================= */
 
-async function processCameraFrame() {
+async function processFrame() {
   const now =
     performance.now();
 
   if (
     mediaPipeBusy ||
-    now - lastMediaPipeFrame < 40 ||
+    now -
+    lastMediaPipeFrame <
+    42 ||
     !hands ||
     video.readyState < 2
   ) {
@@ -1520,16 +1442,15 @@ async function processCameraFrame() {
   }
 }
 
-
 /* =========================================================
-   START EXPERIENCE
+   START CAMERA
 ========================================================= */
 
 async function startExperience() {
   startBtn.disabled = true;
 
   startMsg.textContent =
-    "Loading the acoustic guitar and requesting camera permission...";
+    "Loading guitar samples and requesting camera permission...";
 
   try {
     if (!initInstrument()) {
@@ -1538,29 +1459,18 @@ async function startExperience() {
       );
     }
 
-    initHands();
-
-    /*
-      640 x 360 significantly reduces latency.
-      It remains sufficient for hand detection.
-    */
+    initializeHands();
 
     camera =
       new Camera(video, {
         onFrame:
-          processCameraFrame,
+          processFrame,
 
         width: 640,
         height: 360
       });
 
     await camera.start();
-
-    video.style.display =
-      "block";
-
-    video.style.opacity =
-      "1";
 
     welcome.classList.add(
       "hidden"
@@ -1573,11 +1483,21 @@ async function startExperience() {
     cameraState.textContent =
       "CAMERA ACTIVE";
 
-    resize();
+    /*
+      Determine orientation after
+      the video has become visible.
+    */
+
+    window.requestAnimationFrame(
+      () => {
+        detectVideoMirrorState();
+        resizeCanvases();
+      }
+    );
 
     if (!animationStarted) {
       animationStarted = true;
-      animate();
+      animateParticles();
     }
 
   } catch (error) {
@@ -1594,7 +1514,6 @@ async function startExperience() {
   }
 }
 
-
 /* =========================================================
    RESTART CAMERA
 ========================================================= */
@@ -1608,8 +1527,8 @@ async function restartCamera() {
   mediaPipeBusy = false;
   lastMediaPipeFrame = 0;
 
-  smoothLeftPoint = null;
-  smoothRightPoint = null;
+  smoothScreenLeftPoint = null;
+  smoothScreenRightPoint = null;
 
   try {
     if (camera) {
@@ -1628,7 +1547,7 @@ async function restartCamera() {
     camera =
       new Camera(video, {
         onFrame:
-          processCameraFrame,
+          processFrame,
 
         width: 640,
         height: 360
@@ -1636,14 +1555,12 @@ async function restartCamera() {
 
     await camera.start();
 
-    video.style.display =
-      "block";
-
-    video.style.opacity =
-      "1";
-
     cameraState.textContent =
       "CAMERA ACTIVE";
+
+    window.requestAnimationFrame(
+      detectVideoMirrorState
+    );
 
   } catch (error) {
     showError(
@@ -1652,9 +1569,8 @@ async function restartCamera() {
   }
 }
 
-
 /* =========================================================
-   ERROR MESSAGE
+   ERROR
 ========================================================= */
 
 function showError(text) {
@@ -1672,7 +1588,6 @@ function showError(text) {
   }, 6000);
 }
 
-
 /* =========================================================
    EVENTS
 ========================================================= */
@@ -1681,14 +1596,13 @@ startBtn.onclick =
   startExperience;
 
 manualBtn.onclick =
-  setManual;
+  setManualMode;
 
 concertBtn.onclick =
   startConcert;
 
 pauseBtn.onclick =
-  togglePause;
-
+  toggleConcertPause;
 
 el("stopBtn").onclick = () => {
   window.clearInterval(
@@ -1704,13 +1618,13 @@ el("stopBtn").onclick = () => {
   stopSound();
 };
 
-
 el("restartBtn").onclick =
   restartCamera;
 
-
 el("fullBtn").onclick = () => {
-  if (document.fullscreenElement) {
+  if (
+    document.fullscreenElement
+  ) {
     document.exitFullscreen();
   } else {
     document
@@ -1718,7 +1632,6 @@ el("fullBtn").onclick = () => {
       .requestFullscreen();
   }
 };
-
 
 volume.oninput = () => {
   const newVolume =
@@ -1743,7 +1656,6 @@ volume.oninput = () => {
   }
 };
 
-
 document.addEventListener(
   "visibilitychange",
   () => {
@@ -1753,21 +1665,18 @@ document.addEventListener(
   }
 );
 
-
 window.addEventListener(
   "blur",
   stopSound
 );
 
-
 window.addEventListener(
   "resize",
-  resize
+  resizeCanvases
 );
-
 
 /* =========================================================
    INITIALIZATION
 ========================================================= */
 
-resize();
+resizeCanvases();
