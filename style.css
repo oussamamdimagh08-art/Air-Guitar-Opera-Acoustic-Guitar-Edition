@@ -18,15 +18,9 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-
   color: var(--white);
   background: #050810;
-
-  font-family:
-    Inter,
-    "Segoe UI",
-    Arial,
-    sans-serif;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
 }
 
 .hidden {
@@ -45,10 +39,8 @@ input {
 .welcome {
   position: fixed;
   inset: 0;
-
   display: grid;
   place-items: center;
-
   padding: 24px;
   overflow: hidden;
 
@@ -72,7 +64,6 @@ input {
 
 .welcome::before {
   content: "";
-
   position: absolute;
   inset: -35%;
 
@@ -88,12 +79,9 @@ input {
 
 .glow {
   position: absolute;
-
   width: 430px;
   height: 430px;
-
   border-radius: 50%;
-
   filter: blur(100px);
   opacity: 0.34;
 }
@@ -101,31 +89,23 @@ input {
 .g1 {
   left: -120px;
   top: -150px;
-
   background: #1874ff;
 }
 
 .g2 {
   right: -120px;
   bottom: -150px;
-
   background: #ec43c4;
 }
 
 .welcome-card {
   position: relative;
   z-index: 2;
-
   width: min(980px, 95vw);
-
   padding: 54px 60px;
-
   text-align: center;
 
-  border:
-    1px solid
-    rgba(89, 236, 255, 0.25);
-
+  border: 1px solid rgba(89, 236, 255, 0.25);
   border-radius: 35px;
 
   background:
@@ -136,17 +116,14 @@ input {
     );
 
   box-shadow:
-    0 45px 140px
-    rgba(0, 0, 0, 0.7);
+    0 45px 140px rgba(0, 0, 0, 0.7);
 
   backdrop-filter: blur(24px);
 }
 
 .kicker {
   margin: 0;
-
   color: var(--cyan);
-
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 3px;
@@ -154,10 +131,7 @@ input {
 
 .welcome h1 {
   margin: 24px 0 15px;
-
-  font-size:
-    clamp(48px, 8vw, 94px);
-
+  font-size: clamp(48px, 8vw, 94px);
   line-height: 0.94;
   letter-spacing: -5px;
 }
@@ -165,19 +139,14 @@ input {
 .welcome h1 span,
 .top-hud h2 span {
   color: var(--pink);
-
   text-shadow:
-    0 0 30px
-    rgba(241, 94, 232, 0.38);
+    0 0 30px rgba(241, 94, 232, 0.38);
 }
 
 .lead {
   max-width: 760px;
-
   margin: auto;
-
   color: #bec9d7;
-
   font-size: 18px;
   line-height: 1.65;
 }
@@ -192,27 +161,16 @@ input {
 
 .feature-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(3, 1fr);
-
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-
   margin: 30px 0;
 }
 
 .feature-grid div {
   padding: 18px;
-
-  border:
-    1px solid
-    rgba(255, 255, 255, 0.08);
-
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-
-  background:
-    rgba(255, 255, 255, 0.035);
-
+  background: rgba(255, 255, 255, 0.035);
   text-align: left;
 }
 
@@ -223,25 +181,20 @@ input {
 
 .feature-grid b {
   color: var(--cyan);
-
   font-size: 11px;
   letter-spacing: 1px;
 }
 
 .feature-grid span {
   margin-top: 7px;
-
   color: #8192a7;
-
   font-size: 12px;
 }
 
 #startBtn {
   padding: 17px 35px;
-
   border: 0;
   border-radius: 999px;
-
   color: #1c0814;
 
   background:
@@ -253,12 +206,10 @@ input {
     );
 
   font-weight: 1000;
-
   cursor: pointer;
 
   box-shadow:
-    0 15px 50px
-    rgba(241, 94, 232, 0.25);
+    0 15px 50px rgba(241, 94, 232, 0.25);
 
   transition:
     transform 0.2s ease,
@@ -266,10 +217,7 @@ input {
 }
 
 #startBtn:hover {
-  transform:
-    translateY(-3px)
-    scale(1.02);
-
+  transform: translateY(-3px) scale(1.02);
   filter: brightness(1.08);
 }
 
@@ -280,9 +228,7 @@ input {
 
 #startMsg {
   display: block;
-
   margin-top: 14px;
-
   color: #687991;
 }
 
@@ -293,42 +239,32 @@ input {
 .stage {
   position: fixed;
   inset: 0;
-
   overflow: hidden;
-
   background: #030610;
 }
-
-/*
-  The camera is intentionally NOT mirrored.
-
-  Real right hand = right side of the screen.
-  Real left hand = left side of the screen.
-*/
 
 #video,
 #fx,
 #handsCanvas {
   position: absolute;
   inset: 0;
-
   width: 100%;
   height: 100%;
 }
 
+/*
+  IMPORTANT:
+  No CSS mirror is applied.
+
+  Coordinates in app.js are automatically calibrated
+  with the camera image.
+*/
+
 #video {
   z-index: 1;
-
   display: block;
-
   object-fit: cover;
-
   opacity: 1;
-
-  /*
-    Do not add:
-    transform: scaleX(-1);
-  */
 
   filter:
     saturate(0.98)
@@ -338,13 +274,11 @@ input {
 
 #fx {
   z-index: 2;
-
   pointer-events: none;
 }
 
 #handsCanvas {
   z-index: 3;
-
   pointer-events: none;
 }
 
@@ -352,7 +286,6 @@ input {
   position: absolute;
   inset: 0;
   z-index: 4;
-
   pointer-events: none;
 
   background:
@@ -377,17 +310,11 @@ input {
 
 .hud {
   z-index: 20;
-
-  border:
-    1px solid
-    rgba(89, 236, 255, 0.2);
-
-  background:
-    var(--glass);
+  border: 1px solid rgba(89, 236, 255, 0.2);
+  background: var(--glass);
 
   box-shadow:
-    0 18px 60px
-    rgba(0, 0, 0, 0.28);
+    0 18px 60px rgba(0, 0, 0, 0.28);
 
   backdrop-filter: blur(16px);
 }
@@ -398,7 +325,6 @@ input {
 
 .top-hud {
   position: absolute;
-
   top: 20px;
   left: 3%;
   right: 3%;
@@ -408,27 +334,21 @@ input {
   justify-content: space-between;
 
   padding: 14px 24px;
-
   border-radius: 22px;
 }
 
 .top-hud h2 {
   margin: 4px 0 0;
-
-  font-size:
-    clamp(28px, 3vw, 48px);
-
+  font-size: clamp(28px, 3vw, 48px);
   letter-spacing: 2px;
 }
 
 .live {
   display: flex;
   align-items: center;
-
   gap: 10px;
 
   color: #afbed2;
-
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 1px;
@@ -437,14 +357,11 @@ input {
 .live i {
   width: 11px;
   height: 11px;
-
   border-radius: 50%;
-
   background: var(--green);
 
   box-shadow:
-    0 0 18px
-    var(--green);
+    0 0 18px var(--green);
 
   animation:
     pulse 1.3s infinite;
@@ -456,30 +373,22 @@ input {
 
 .mode-nav {
   position: absolute;
-
   top: 126px;
   left: 50%;
 
   display: flex;
-
   gap: 6px;
-
   padding: 6px;
 
   border-radius: 999px;
-
-  transform:
-    translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .mode-nav button {
   padding: 10px 16px;
-
   border: 0;
   border-radius: 999px;
-
   color: #99a9ba;
-
   background: transparent;
 
   font-size: 10px;
@@ -500,8 +409,7 @@ input {
     );
 
   box-shadow:
-    0 0 22px
-    rgba(89, 236, 255, 0.26);
+    0 0 22px rgba(89, 236, 255, 0.26);
 }
 
 /* ==================================================
@@ -511,9 +419,7 @@ input {
 .field {
   position: absolute;
   z-index: 8;
-
   border-radius: 50%;
-
   color: var(--cyan);
 
   transition:
@@ -523,7 +429,6 @@ input {
 .left-field {
   left: 7%;
   top: 35%;
-
   width: 220px;
   height: 220px;
 }
@@ -531,26 +436,16 @@ input {
 .right-field {
   right: 7%;
   top: 24%;
-
-  width:
-    min(510px, 38vw);
-
-  height:
-    min(510px, 38vw);
-
+  width: min(510px, 38vw);
+  height: min(510px, 38vw);
   color: var(--pink);
 }
 
 .halo {
   position: absolute;
   inset: 0;
-
-  border:
-    1px solid
-    currentColor;
-
+  border: 1px solid currentColor;
   border-radius: 50%;
-
   opacity: 0.38;
 
   box-shadow:
@@ -570,18 +465,14 @@ input {
 
 .h2 {
   inset: 9%;
-
   border-style: dashed;
-
   animation:
     spin 18s linear infinite reverse;
 }
 
 .h3 {
   inset: 18%;
-
   border-style: dotted;
-
   animation:
     spin 10s linear infinite;
 }
@@ -613,22 +504,18 @@ input {
   justify-content: center;
 
   text-align: center;
-
   pointer-events: none;
 }
 
 .field-center small {
   color: #c4d0df;
-
   font-weight: 1000;
   letter-spacing: 2px;
 }
 
 .field-center em {
   margin-top: 5px;
-
   color: #71839a;
-
   font-size: 9px;
   font-style: normal;
   letter-spacing: 1.5px;
@@ -636,22 +523,16 @@ input {
 
 .field-center strong {
   margin: 9px 0 1px;
-
   color: currentColor;
-
-  font-size:
-    clamp(42px, 5vw, 76px);
-
+  font-size: clamp(42px, 5vw, 76px);
   line-height: 1;
 
   text-shadow:
-    0 0 28px
-    currentColor;
+    0 0 28px currentColor;
 }
 
 .field-center span {
   color: #a3b2c1;
-
   font-family: monospace;
   font-size: 12px;
 }
@@ -662,36 +543,24 @@ input {
 
 .chords {
   position: absolute;
-
   left: 13%;
   right: 13%;
   bottom: 11%;
 
   display: grid;
-
-  grid-template-columns:
-    repeat(4, 1fr);
-
+  grid-template-columns: repeat(4, 1fr);
   gap: 5px;
 }
 
 .chords span {
   padding: 5px;
-
-  border:
-    1px solid
-    rgba(89, 236, 255, 0.18);
-
+  border: 1px solid rgba(89, 236, 255, 0.18);
   border-radius: 999px;
-
   color: #8295a8;
-
-  background:
-    rgba(0, 7, 14, 0.5);
+  background: rgba(0, 7, 14, 0.5);
 
   font-size: 9px;
   font-weight: 900;
-
   text-align: center;
 }
 
@@ -736,7 +605,6 @@ input {
 
 .pitch {
   position: absolute;
-
   top: 20%;
   right: 4%;
   bottom: 20%;
@@ -745,9 +613,7 @@ input {
   flex-direction: column;
   justify-content: space-between;
 
-  color:
-    rgba(255, 255, 255, 0.36);
-
+  color: rgba(255, 255, 255, 0.36);
   font-size: 8px;
   font-weight: 900;
 }
@@ -758,15 +624,12 @@ input {
 
 .energy {
   position: absolute;
-
   left: 18%;
   right: 18%;
   bottom: 5%;
-
   height: 5px;
 
   overflow: hidden;
-
   border-radius: 99px;
 
   background:
@@ -775,7 +638,6 @@ input {
 
 .energy i {
   display: block;
-
   width: 0;
   height: 100%;
 
@@ -788,8 +650,7 @@ input {
     );
 
   box-shadow:
-    0 0 14px
-    currentColor;
+    0 0 14px currentColor;
 
   transition:
     width 0.1s ease;
@@ -801,21 +662,15 @@ input {
 
 .message {
   position: absolute;
-
   left: 50%;
   bottom: 24px;
 
-  width:
-    min(720px, 75vw);
-
+  width: min(720px, 75vw);
   padding: 15px 22px;
-
   border-radius: 18px;
 
   text-align: center;
-
-  transform:
-    translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .message strong,
@@ -829,17 +684,14 @@ input {
 
 .message span {
   margin-top: 5px;
-
   color: #93a4b6;
 }
 
 .progress {
   height: 4px;
-
   margin-bottom: 11px;
 
   overflow: hidden;
-
   border-radius: 99px;
 
   background:
@@ -848,7 +700,6 @@ input {
 
 .progress i {
   display: block;
-
   width: 0;
   height: 100%;
 
@@ -873,55 +724,40 @@ input {
 
 .tools {
   position: absolute;
-
   left: 22px;
   bottom: 22px;
 
   display: flex;
   align-items: center;
-
   gap: 7px;
 
   padding: 8px;
-
   border-radius: 15px;
 }
 
 .tools button {
   padding: 8px 10px;
-
-  border:
-    1px solid
-    rgba(89, 236, 255, 0.18);
-
+  border: 1px solid rgba(89, 236, 255, 0.18);
   border-radius: 10px;
-
   color: #aab8c8;
-
-  background:
-    rgba(0, 7, 14, 0.5);
+  background: rgba(0, 7, 14, 0.5);
 
   font-size: 9px;
   font-weight: 900;
-
   cursor: pointer;
 }
 
 .tools label {
   display: flex;
   align-items: center;
-
   gap: 7px;
-
   color: #8ea0b5;
-
   font-size: 9px;
   font-weight: 900;
 }
 
 .tools input {
   width: 100px;
-
   accent-color: var(--cyan);
 }
 
@@ -932,12 +768,9 @@ input {
 .credit {
   position: absolute;
   z-index: 20;
-
   right: 24px;
   bottom: 26px;
-
   color: #607388;
-
   font-size: 9px;
   letter-spacing: 1px;
 }
@@ -949,20 +782,14 @@ input {
 .error {
   position: absolute;
   z-index: 50;
-
   left: 20px;
   right: 20px;
   bottom: 20px;
 
   padding: 13px;
-
-  border:
-    1px solid #ff5470;
-
+  border: 1px solid #ff5470;
   border-radius: 12px;
-
-  background:
-    rgba(105, 17, 40, 0.94);
+  background: rgba(105, 17, 40, 0.94);
 
   text-align: center;
 }
@@ -986,8 +813,7 @@ input {
 
 @keyframes stringPulse {
   to {
-    transform:
-      translateX(2px);
+    transform: translateX(2px);
   }
 }
 
@@ -1006,7 +832,6 @@ input {
 
   .left-field {
     left: 3%;
-
     width: 170px;
     height: 170px;
   }
@@ -1014,16 +839,13 @@ input {
   .right-field {
     right: 2%;
     top: 30%;
-
     width: 58vw;
     height: 58vw;
   }
 
   .tools {
     bottom: 85px;
-
     max-width: 65%;
-
     flex-wrap: wrap;
   }
 
@@ -1053,7 +875,6 @@ input {
   .top-hud {
     left: 8px;
     right: 8px;
-
     padding: 10px;
   }
 
@@ -1072,7 +893,6 @@ input {
   .left-field {
     left: 2%;
     top: 40%;
-
     width: 125px;
     height: 125px;
   }
@@ -1080,7 +900,6 @@ input {
   .right-field {
     right: 0;
     top: 34%;
-
     width: 66vw;
     height: 66vw;
   }
@@ -1097,7 +916,6 @@ input {
   .tools {
     left: 8px;
     bottom: 72px;
-
     max-width: 75%;
   }
 
