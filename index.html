@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Air Guitar Opera Edition</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+  <script src="https://surikov.github.io/webaudiofontdata/sound/0250_LK_AcousticSteel_SF2_file.js"></script>
+</head>
+<body>
+  <section id="welcome" class="welcome">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <article class="welcome-card">
+      <p class="kicker">CODING FOR FUN · LIVE EXPERIENCE</p>
+      <h1>AIR GUITAR <span>OPERA EDITION</span></h1>
+      <p class="lead">Turn two hands into a sampled acoustic guitar. Select harmony with the left hand, perform with the right hand, or launch a complete guitar concert and improvise above it.</p>
+      <p class="author">Created by <strong>Oussama Mdemagh</strong></p>
+      <div class="feature-grid">
+        <div><b>LEFT HAND</b><span>Select C, Am, F or G</span></div>
+        <div><b>RIGHT HAND</b><span>Strum and play real guitar samples</span></div>
+        <div><b>CONCERT MODE</b><span>A continuous guitar-only arrangement</span></div>
+      </div>
+      <button id="startBtn">ENTER THE STAGE</button>
+      <small id="startMsg">Use Chrome or Edge. Camera processing stays in the browser.</small>
+    </article>
+  </section>
+
+  <main id="stage" class="stage hidden">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="fx"></canvas><canvas id="handsCanvas"></canvas>
+    <div class="stage-shade"></div>
+
+    <header class="hud top-hud">
+      <div><p class="kicker">CODING FOR FUN · LIVE EXPERIENCE</p><h2>AIR GUITAR <span>OPERA EDITION</span></h2></div>
+      <div class="live"><i></i><span id="cameraState">CAMERA STARTING</span><span id="handState">NO HANDS</span></div>
+    </header>
+
+    <nav class="mode-nav hud">
+      <button id="manualBtn" class="active">MANUAL LIVE</button>
+      <button id="concertBtn">GUITAR CONCERT</button>
+      <button id="pauseBtn">PAUSE</button>
+    </nav>
+
+    <section id="leftField" class="field left-field">
+      <div class="halo h1"></div><div class="halo h2"></div>
+      <div class="field-center"><small>LEFT HAND</small><em>CHORD CONTROL</em><strong id="chordName">C</strong><span id="chordLong">C MAJOR</span></div>
+      <div class="chords"><span>C</span><span>Am</span><span>F</span><span>G</span></div>
+      <div class="energy"><i id="leftEnergy"></i></div>
+    </section>
+
+    <section id="rightField" class="field right-field">
+      <div class="halo h1"></div><div class="halo h2"></div><div class="halo h3"></div>
+      <div class="strings"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="field-center"><small>RIGHT HAND</small><em>MUSICAL PATH</em><strong>GUITAR</strong><span id="playedNote">Move to play</span></div>
+      <div class="pitch"><span>HIGH</span><span>MID</span><span>LOW</span></div>
+      <div class="energy"><i id="rightEnergy"></i></div>
+    </section>
+
+    <section class="message hud"><div class="progress"><i id="progressBar"></i></div><strong id="message">Place your left hand inside the chord field</strong><span id="subMessage">Then move the right hand inside the guitar field</span></section>
+
+    <section class="tools hud">
+      <button id="stopBtn">STOP SOUND</button><button id="restartBtn">RESTART CAMERA</button><button id="fullBtn">FULLSCREEN</button>
+      <label>VOLUME <input id="volume" type="range" min="0" max="1" step="0.01" value="0.72"><output id="volumeText">72%</output></label>
+    </section>
+    <div class="credit">CREATED BY <b>OUSSAMA MDEMAGH</b></div>
+    <div id="error" class="error hidden"></div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
